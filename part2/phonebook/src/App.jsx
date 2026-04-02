@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import personServices from './services/persons'
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
@@ -11,31 +11,67 @@ const App = () => {
   const [searchInput, setSearchInput] = useState('')
 
   useEffect(() => {
-    axios.get('http://localhost:3001/persons')
-    .then(response => {
-      setPersons(response.data)
-    })
+    personServices
+      .getAll()
+      .then(initialList => setPersons(initialList))
+      .catch(error => console.log(error))
   }, [])
 
-  const addName = (event) => {
-    event.preventDefault()
-
-    const isIdentical = persons.some(person => person.name.localeCompare(newName, undefined, {sensitivity: 'accent'}) === 0)
-    if (isIdentical) {
-      alert(`${newName} is already added to phonebook`)
+  const updatePerson = (person) => {
+    console.log(person)
+    personServices.update(person.id, {
+      ...person,
+      number: newNumber,
+    })
+    .then(savedPerson => {
+      setPersons(persons.map(person => (person.id === savedPerson.id)
+        ? savedPerson
+        : person)
+      )
+      alert(`${savedPerson.name}'s number is updated from ${person.number} to ${savedPerson.number}`)
       setNewName('')
       setNewNumber('')
-      return
+    })
+    .catch(error => console.log(error.message))
+  }
+  
+  const addPerson = (event) => {
+    event.preventDefault()
+    
+    let identicalPerson;
+    const isIdentical = persons.find(person => {
+      if (person.name.localeCompare(newName, undefined, {sensitivity: 'accent'}) === 0) {
+        identicalPerson = person
+        return true
+      }
+    })
+    if (isIdentical) {
+      const isConfirmed = confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)
+      if (isConfirmed) updatePerson(identicalPerson)
+      return 
     }
 
-    const nameObj = {
+    const personObj = {
       name: newName,
       number: newNumber,
     }
 
-    setPersons(persons.concat(nameObj))
-    setNewName('')
-    setNewNumber('')
+    personServices
+      .create(personObj)
+      .then(savedPerson => {
+        setPersons(persons.concat(savedPerson))
+        setNewName('')
+        setNewNumber('')
+      })
+      .catch(error => console.log(error.message))
+  }
+
+  const deletePersonOf = (id) => {
+    personServices.remove(id)
+      .then(deletedPerson => {
+        setPersons(persons.filter(person => person.id !== deletedPerson.id))
+      })
+      .catch(error => console.log(error.message))
   }
 
   const personsToShow = (!searchInput)
@@ -49,7 +85,7 @@ const App = () => {
 
       <h3>Add a new</h3>
       <PersonForm 
-        onSubmit={addName}
+        onSubmit={addPerson}
         newName={newName}
         setNewName={setNewName}
         newNumber={newNumber}
@@ -57,7 +93,7 @@ const App = () => {
       />
 
       <h3>Numbers</h3>
-      <Persons personsToShow={personsToShow} />
+      <Persons personsToShow={personsToShow} deletePerson={deletePersonOf} />
     </div>
   )
 }
