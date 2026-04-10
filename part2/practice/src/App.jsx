@@ -1,17 +1,26 @@
 import { useState, useEffect } from 'react'
 import noteServices from './services/notes'
 import Note from './components/Note'
+import Notification from './components/Notification'
+import Footer from './components/Footer'
 
 const App = () => {
-  const [notes, setNotes] = useState([])
+  const [notes, setNotes] = useState(null)
   const [newNote, setNewNote] = useState('')
   const [showAll, setShowAll] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('some error happened...')
 
+  
   useEffect(() => {
     noteServices
-      .getAll()
-      .then(initialNotes => setNotes(initialNotes))
+    .getAll()
+    .then(initialNotes => setNotes(initialNotes))
   }, [])
+  
+  if(!notes) { 
+  /* this is called at the first render but not after the codes the effect hook are run, which is the second render caused by the setNotes method  */
+    return null
+  }
 
   const addNote = (event) => {
     event.preventDefault()
@@ -53,10 +62,14 @@ const App = () => {
         setNotes(update)
       })
       .catch(error => {
-        console.log(error.message);
-        alert(
-          `the note '${target.content}' was already deleted from server`
+        console.log(error.message)
+        
+        setErrorMessage(
+          `Note '${target.content}' was already removed from server`
         )
+        setTimeout(() => {
+          setErrorMessage(null)
+        }, 5000)
         setNotes(notes.filter(n => n.id !== id))
       })
   }
@@ -73,6 +86,7 @@ const App = () => {
   return (
     <div>
       <h1>Notes</h1>
+      <Notification message={errorMessage} />
       <div>
         <button onClick={() => setShowAll(!showAll)}>
           show {showAll ? 'important' : 'all'}
@@ -95,6 +109,7 @@ const App = () => {
         />
         <button type="submit">save</button>
       </form>
+        < Footer />
     </div>
   )
 }
