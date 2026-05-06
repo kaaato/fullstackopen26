@@ -64,6 +64,7 @@ const App = () => {
     const isIdentical = persons.find(person => {
       if (person.name.localeCompare(newName, undefined, {sensitivity: 'accent'}) === 0) {
         identicalPerson = person
+        emptyFields(setNewName, setNewNumber)
         return true
       }
     })
@@ -89,11 +90,12 @@ const App = () => {
       .catch(error => console.log(error.message))
   }
 
-  const deletePersonOf = (id) => {
+  const deletePersonOf = (id, name) => {
     personServices.remove(id)
-      .then(deletedPerson => {
-        setPersons(persons.filter(person => person.id !== deletedPerson.id))
-        const text = `Deleted ${deletedPerson.name}`
+      // eslint-disable-next-line no-unused-vars
+      .then(result => {
+        setPersons(persons.filter(person => person.id !== id))
+        const text = `Deleted ${name}`
         showMessage(text, true)
       })
       .catch(error => {

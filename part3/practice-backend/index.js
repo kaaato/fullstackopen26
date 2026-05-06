@@ -1,23 +1,7 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
-
-let notes = [
-  {
-    id: "1",
-    content: "HTML is easy",
-    important: true
-  },
-  {
-    id: "2",
-    content: "Browser can execute only JavaScript",
-    important: false
-  },
-  {
-    id: "3",
-    content: "GET and POST are the most important methods of HTTP protocol",
-    important: true
-  }
-]
+const Note = require('./models/note')
 
 const requestLogger = (request, response, next) => {
   console.log('Method:', request.method)
@@ -27,42 +11,43 @@ const requestLogger = (request, response, next) => {
   next()
 }
 
-app.use(express.json())
 app.use(express.static('dist'))
+app.use(express.json())
 app.use(requestLogger)
 
 app.get('/', (request, response) => {
-  response.send('<h1>This is the root endpoint, should be like the home of a site</h1>')
+  response.send('<h1>Hello</h1>')
 })
 
 app.get('/api/notes', (request, response) => {
-  response.json(notes)
+  Note.find({})
+    .then(result => {
+      response.json(result)
+    })
 })
 
-app.get('/api/notes/:id', (request, response) => {
+app.get('/api/notes/:id', (request, response, next) => {
   const id = request.params.id
-  const note = notes.find(note => note.id === id)
-
-  if (note) {
-    response.json(note)
-  } else {
-    response.status(404).end()
-  }
+  Note.findById(id)
+    .exec()
+    .then(note => {
+      if (note) {
+        response.json(result)
+      } else {
+        response.status(404).end()
+      }
+    })
+    .catch(err => next(err))
 })
 
-app.delete('/api/notes/:id', (request, response) => {
+app.delete('/api/notes/:id', (request, response, next) => {
   const id = request.params.id
-  notes = notes.filter(note => note.id !== id)
-
-  response.status(204).end()
+  Note.findByIdAndDelete(id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(err => next(err))
 })
-
-const generateId = () => {
-  const maxId = notes.length > 0
-    ? Math.max(...notes.map(n => Number(n.id)))
-    : 0
-  return String(maxId + 1)
-}
 
 app.post('/api/notes', (request, response) => {
   const body = request.body
@@ -73,15 +58,36 @@ app.post('/api/notes', (request, response) => {
     })
   }
 
-  const note = {
+  const note = new Note({
     content: body.content,
     important: body.important || false,
-    id: generateId(),
-  }
+  })
 
-  notes = notes.concat(note)
+  note.save()
+    .then(savedNote => {
+      response.json(savedNote)
+    })
+})
 
-  response.json(note)
+app.put('/api/notes/:id', (request, response, next) => {
+  const { content, important} = request.body
+  const id = request.params.id
+
+  Note.findById(id)
+    .exec()
+    .then(note => {
+      if (!note) {
+        response.status(404).end()
+      }
+      note.content = content
+      note.important = important
+
+      return note.save()
+        .then(updatedNote => {
+          response.json(updatedNote)
+        })
+    })
+    .catch(err => next(err))
 })
 
 const unknownEndpoint = (request, response) => {
@@ -90,7 +96,19 @@ const unknownEndpoint = (request, response) => {
 
 app.use(unknownEndpoint)
 
-const PORT = process.env.PORT || 3001
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } 
+
+  next(error)
+}
+
+app.use(errorHandler)
+
+const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })

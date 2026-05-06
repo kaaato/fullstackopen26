@@ -1,7 +1,7 @@
 const Persons = ({ personsToShow, deletePerson }) => {
   const confirmBeforeDelete = (name, id) => {
     const isConfirmed = confirm(`Delete ${name} ?`)
-    if (isConfirmed) deletePerson(id)
+    if (isConfirmed) deletePerson(id, name)
   }
 
   return (

@@ -77,8 +77,9 @@ const App = () => {
   const deleteNoteOf = (id) => {
     noteServices
     .remove(id)
+    // eslint-disable-next-line no-unused-vars
     .then(removedNote => {
-      setNotes(notes.filter(note => note.id !== removedNote.id))
+      setNotes(notes.filter(note => note.id !== id))
     })
     .catch(error => console.log(error.message))
   }
