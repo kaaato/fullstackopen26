@@ -6,16 +6,19 @@ const Person = require('./models/person')
 
 app.use(express.static('dist'))
 app.use(express.json())
+// eslint-disable-next-line no-unused-vars
 morgan.token('person', (request, response) => JSON.stringify(request.body))
 morgan.format('postOnly', ':method :url :status :res[content-length] - :response-time ms :person')
 
 app.use(morgan('tiny', {
+  // eslint-disable-next-line no-unused-vars
   skip(request, response) {
     return request.method === 'POST'
   }
 }))
 
 app.use(morgan('postOnly', {
+  // eslint-disable-next-line no-unused-vars
   skip(request, response) {
     return request.method !== 'POST'
   }
@@ -27,7 +30,6 @@ app.get('/api/persons', (request, response) => {
     .then(persons => {
       response.json(persons)
     })
-  
 })
 
 app.get('/info', (request, response) => {
@@ -42,7 +44,7 @@ app.get('/info', (request, response) => {
       )
     })
 
-  
+
 })
 
 app.get('/api/persons/:id', (request, response, next) => {
@@ -60,18 +62,19 @@ app.get('/api/persons/:id', (request, response, next) => {
 
 })
 
-app.delete('/api/persons/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
   const id = request.params.id
   Person.findByIdAndDelete(id)
+    // eslint-disable-next-line no-unused-vars
     .then(deletedPerson => {
       response.status(204).end()
     })
     .catch(err => next(err))
-  
+
 })
 
-app.post('/api/persons', (request, response) => {
-  const {name, number} = request.body
+app.post('/api/persons', (request, response, next) => {
+  const { name, number } = request.body
 
   const person = new Person({
     name,
@@ -82,11 +85,12 @@ app.post('/api/persons', (request, response) => {
     .then(savedPerson => {
       response.json(savedPerson)
     })
-  
+    .catch(err => next(err))
+
 })
 
 app.put('/api/persons/:id', (request, response, next) => {
-  const { name, number } = request.body
+  const { number } = request.body
   const id = request.params.id
 
   Person.findById(id)
@@ -111,7 +115,9 @@ const errorHandler = (error, request, response, next) => {
 
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
-  } 
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
 
   next(error)
 }

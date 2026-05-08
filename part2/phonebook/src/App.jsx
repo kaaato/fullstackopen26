@@ -49,11 +49,10 @@ const App = () => {
       emptyFields(setNewName, setNewNumber)
     })
     .catch((error) => {
-      console.log(error)
-      const text = `Information of ${person.name} has already been removed from the server`
-      showMessage(text, false)
-      setPersons(persons.filter(p => p.id !== person.id))
-      emptyFields(setNewName, setNewNumber)
+      if (error.config.method === 'put') {
+        console.log(error.response.data.error)
+        showMessage(error.response.data.error, false)
+      }
     })
   }
   
@@ -64,7 +63,6 @@ const App = () => {
     const isIdentical = persons.find(person => {
       if (person.name.localeCompare(newName, undefined, {sensitivity: 'accent'}) === 0) {
         identicalPerson = person
-        emptyFields(setNewName, setNewNumber)
         return true
       }
     })
@@ -87,7 +85,11 @@ const App = () => {
         showMessage(text, true)
         emptyFields(setNewName, setNewNumber)
       })
-      .catch(error => console.log(error.message))
+      .catch(error => {
+        console.log(error.response.data.error)
+        showMessage(error.response.data.error, false)
+        emptyFields(setNewName, setNewNumber)
+      })
   }
 
   const deletePersonOf = (id, name) => {

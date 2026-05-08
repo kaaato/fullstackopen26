@@ -32,7 +32,7 @@ app.get('/api/notes/:id', (request, response, next) => {
     .exec()
     .then(note => {
       if (note) {
-        response.json(result)
+        response.json(note)
       } else {
         response.status(404).end()
       }
@@ -43,18 +43,19 @@ app.get('/api/notes/:id', (request, response, next) => {
 app.delete('/api/notes/:id', (request, response, next) => {
   const id = request.params.id
   Note.findByIdAndDelete(id)
+    // eslint-disable-next-line no-unused-vars
     .then(result => {
       response.status(204).end()
     })
     .catch(err => next(err))
 })
 
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response, next) => {
   const body = request.body
 
   if (!body.content) {
-    return response.status(400).json({ 
-      error: 'content missing' 
+    return response.status(400).json({
+      error: 'content missing'
     })
   }
 
@@ -67,10 +68,11 @@ app.post('/api/notes', (request, response) => {
     .then(savedNote => {
       response.json(savedNote)
     })
+    .catch(err => next(err))
 })
 
 app.put('/api/notes/:id', (request, response, next) => {
-  const { content, important} = request.body
+  const { content, important } = request.body
   const id = request.params.id
 
   Note.findById(id)
@@ -101,7 +103,9 @@ const errorHandler = (error, request, response, next) => {
 
   if (error.name === 'CastError') {
     return response.status(400).send({ error: 'malformatted id' })
-  } 
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
 
   next(error)
 }
