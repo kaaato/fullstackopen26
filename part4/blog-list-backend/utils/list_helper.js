@@ -26,11 +26,7 @@ const mostBlogs = array => {
   let obj = {}
 
   array.forEach(blog => {
-    if (obj[blog.author]) {
-      obj[blog.author] += 1
-    } else {
-      obj[blog.author] = 1
-    }
+    obj[blog.author] = obj[blog.author] + 1 || 1
   })
 
   const author = Object.entries(obj)
@@ -47,11 +43,7 @@ const mostLikes = array => {
   let obj = {}
 
   array.forEach(blog => {
-    if (obj[blog.author]) {
-      obj[blog.author] += blog.likes
-    } else {
-      obj[blog.author] = blog.likes
-    }
+    obj[blog.author] = obj[blog.author] + blog.likes || blog.likes
   })
 
   const author = Object.entries(obj)
