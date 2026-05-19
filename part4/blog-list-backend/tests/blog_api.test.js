@@ -2,13 +2,14 @@ const { test, after, beforeEach, describe } = require('node:test')
 const assert = require('node:assert')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
+const bcrypt = require('bcrypt')
+
 const app = require('../app')
 const Blog = require('../models/blog')
 const helper = require('./test_helper')
-
+const User = require('../models/user')
 
 const api = supertest(app)
-
 
 describe('Some blogs are saved before each test', () => {
   beforeEach(async () => {
@@ -110,7 +111,7 @@ describe('Some blogs are saved before each test', () => {
   })
 
   describe('Testing PUT requests', () => {
-    test.only('A blog is updated, the value of the likes property is increased by 5', async () => {
+    test('A blog is updated, the value of the likes property is increased by 5', async () => {
       const blogsAtStart = await helper.blogsInDb()
       const blogToUpdate = blogsAtStart[0]
 
@@ -126,7 +127,59 @@ describe('Some blogs are saved before each test', () => {
   })
 })
 
+describe('when there is initially one user in db', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
 
+    const passwordHash = await bcrypt.hash('password', 10)
+    const user = new User({ username: 'test', passwordHash })
+
+    await user.save()
+  })
+
+  test('creation succeeds with a fresh username', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'panda',
+      name: 'My Name',
+      password: 'myPassword',
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length + 1)
+
+    const usernames = usersAtEnd.map(u => u.username)
+    assert(usernames.includes(newUser.username))
+  })
+
+  test.only('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'test',
+      name: 'test user',
+      password: 'test'
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+    assert(result.body.error.includes('expected `username` to be unique'))
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
+  })
+})
 
 
 
