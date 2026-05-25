@@ -1,6 +1,15 @@
 const notesRouter = require('express').Router()
+const jwt = require('jsonwebtoken')
 const Note = require('../models/note')
 const User = require('../models/user')
+
+const getTokenFrom = request => {
+  const authorization = request.get('authorization')
+  if (authorization && authorization.startsWith('Bearer ')) {
+    return authorization.replace('Bearer ', '')
+  }
+  return null
+}
 
 notesRouter.get('/', async (request, response) => {
   const notes = await Note
@@ -21,7 +30,12 @@ notesRouter.get('/:id', async (request, response) => {
 notesRouter.post('/', async (request, response) => {
   const body = request.body
 
-  const user = await User.findById(body.userId)
+  const decodedToken = jwt.verify(getTokenFrom(request), process.env.SECRET)
+  if (!decodedToken.id) {
+    return response.status(401).json({ error: 'token invalid' })
+  }
+  const user = await User.findById(decodedToken.id)
+
   if (!user) {
     return response.status(400).json({ error: 'userId missing or not valid' })
   }
@@ -40,12 +54,47 @@ notesRouter.post('/', async (request, response) => {
 })
 
 notesRouter.delete('/:id', async (request, response) => {
+  const decodedToken = jwt.verify(getTokenFrom(request), process.env.SECRET)
+  if (!decodedToken.id) {
+    return response.status(401).json({ error: 'token invalid' })
+  }
+  const user = await User.findById(decodedToken.id)
+
+  if (!user) {
+    return response.status(400).json({ error: 'userId missing or not valid' })
+  }
+
+  const hasUserCreated = user.notes.includes(request.params.id)
+
+  if (!hasUserCreated) {
+    return response.status(401).json({ error: 'user is not allowed to delete this note' })
+  }
+
+  // user.notes = user.notes.filter(id => id.toString() !== request.params.id)
+  // await user.save()
+
   await Note.findByIdAndDelete(request.params.id)
   response.status(204).end()
 })
 
 notesRouter.put('/:id', async(request, response) => {
   const { content, important } = request.body
+
+  const decodedToken = jwt.verify(getTokenFrom(request), process.env.SECRET)
+  if (!decodedToken.id) {
+    return response.status(401).json({ error: 'token invalid' })
+  }
+  const user = await User.findById(decodedToken.id)
+
+  if (!user) {
+    return response.status(400).json({ error: 'userId missing or not valid' })
+  }
+
+  const hasUserCreated = user.notes.includes(request.params.id)
+
+  if (!hasUserCreated) {
+    return response.status(401).json({ error: 'user is not allowed to update this note' })
+  }
 
   const targetNote = await Note.findById(request.params.id)
   if (!targetNote) {

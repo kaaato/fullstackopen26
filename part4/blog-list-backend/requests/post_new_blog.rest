@@ -1,10 +1,24 @@
 POST http://localhost:3003/api/blogs/ HTTP/1.1
 Content-Type: application/json
+Authorization: Bearer 
+
 
 {
-  "title": "Type wars",
-  "author": "Robert C. Martin",
-  "url": "http://blog.cleancoder.com/uncle-bob/2016/05/01/TypeWars.html",
-  "likes": 2,
-  "userId": "6a0c74fad3b4187ae39c4de1"
+  "title": "Testing title",
+  "author": "Testing name",
+  "url": "http://testing.com",
+  "likes": 0
+}
+
+###
+POST http://localhost:3003/api/blogs/ HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer 
+
+
+{
+  "title": "Testing title",
+  "author": "Testing name",
+  "url": "http://testing.com",
+  "likes": 0
 }

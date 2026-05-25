@@ -1,0 +1,24 @@
+POST http://localhost:3001/api/login/ HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "mluukkai",
+  "password": "abcdef"
+}
+
+  # "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Im1sdXVra2FpIiwiaWQiOiI2YTBmMjQ1ZTgzNGZkNmIzYjI3NzJlN2EiLCJpYXQiOjE3NzkzNzc0MjEsImV4cCI6MTc3OTM4MTAyMX0.hpMJLAbqvwFdRHvbn63-f5Zazg9E_JxkODhdwGPpfbE",
+  # "username": "mluukkai",
+  # "name": "Matti Luukkainen"
+
+###
+POST http://localhost:3001/api/login/ HTTP/1.1
+Content-Type: application/json
+
+{
+  "username": "root",
+  "password": "salainen"
+}
+
+  # "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InJvb3QiLCJpZCI6IjZhMGYyNDU4ODM0ZmQ2YjNiMjc3MmU3OSIsImlhdCI6MTc3OTM3NzQ0OSwiZXhwIjoxNzc5MzgxMDQ5fQ.M36MwsN2wwCHHwhDHC8YXZVxIyjFKBx0q_acW8_vPTI",
+  # "username": "root",
+  # "name": "Superuser"

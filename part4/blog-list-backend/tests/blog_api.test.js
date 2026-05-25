@@ -12,11 +12,43 @@ const User = require('../models/user')
 const api = supertest(app)
 
 describe('Some blogs are saved before each test', () => {
+  let tokenA
+
   beforeEach(async () => {
+    await User.deleteMany({})
+
+    for (let u of helper.usersList) {
+      const passwordHash = await bcrypt.hash(u.password, 10)
+      const user = new User({
+        username: u.username,
+        name: u.name,
+        passwordHash
+      })
+      await user.save()
+    }
+
+    const token = await api
+      .post('/api/login')
+      .send({
+        username: 'testUserA',
+        password: 'testPasswordA'
+      })
+
+    tokenA = token.body.token
+
     await Blog.deleteMany({})
-    const blogObjects = helper.initialBlogs
-      .map(blog => new Blog(blog))
-    await Promise.all(blogObjects.map(blog => blog.save()))
+
+    const u = await User.findOne({ username: token.body.username })
+    for (let b of helper.initialBlogs) {
+      const blog = new Blog({
+        ...b,
+        user: u._id
+      })
+      const savedBlog = await blog.save()
+      u.blogs = u.blogs.concat(savedBlog._id)
+      await u.save()
+    }
+
   })
 
   test('All blogs are returned', async () => {
@@ -37,7 +69,7 @@ describe('Some blogs are saved before each test', () => {
   })
 
   describe('Testing POST requests', () => {
-    test('A blog is added', async () => {
+    test('adding a blog is failed if no token is provided', async () => {
       const newBlog = {
         title: 'First class tests',
         author: 'Robert C. Martin',
@@ -47,6 +79,21 @@ describe('Some blogs are saved before each test', () => {
 
       await api
         .post('/api/blogs')
+        .send(newBlog)
+        .expect(401)
+    })
+
+    test('A blog is added if a token is provided', async () => {
+      const newBlog = {
+        title: 'First class tests',
+        author: 'Robert C. Martin',
+        url: 'http://blog.cleancoder.com/uncle-bob/2017/05/05/TestDefinitions.htmll',
+        likes: 10,
+      }
+
+      await api
+        .post('/api/blogs')
+        .set('Authorization', `Bearer ${tokenA}`)
         .send(newBlog)
         .expect(201)
         .expect('Content-Type', /application\/json/)
@@ -64,6 +111,7 @@ describe('Some blogs are saved before each test', () => {
 
       const savedBlog = await api
         .post('/api/blogs')
+        .set('Authorization', `Bearer ${tokenA}`)
         .send(newBlog)
         .expect(201)
         .expect('Content-Type', /application\/json/)
@@ -84,11 +132,13 @@ describe('Some blogs are saved before each test', () => {
 
       await api
         .post('/api/blogs')
+        .set('Authorization', `Bearer ${tokenA}`)
         .send(newBlog1)
         .expect(400)
 
       await api
         .post('/api/blogs')
+        .set('Authorization', `Bearer ${tokenA}`)
         .send(newBlog2)
         .expect(400)
     })
@@ -101,6 +151,7 @@ describe('Some blogs are saved before each test', () => {
 
       await api
         .delete(`/api/blogs/${blogToDelete.id}`)
+        .set('Authorization', `Bearer ${tokenA}`)
         .expect(204)
 
       const blogsAtEnd = await helper.blogsInDb()
@@ -117,6 +168,7 @@ describe('Some blogs are saved before each test', () => {
 
       await api
         .put(`/api/blogs/${blogToUpdate.id}`)
+        .set('Authorization', `Bearer ${tokenA}`)
         .send({ likes: blogToUpdate.likes + 5 })
         .expect(200)
 
@@ -159,7 +211,7 @@ describe('when there is initially one user in db', () => {
     assert(usernames.includes(newUser.username))
   })
 
-  test.only('creation fails with proper statuscode and message if username already taken', async () => {
+  test('creation fails with proper statuscode and message if username already taken', async () => {
     const usersAtStart = await helper.usersInDb()
 
     const newUser = {
@@ -180,9 +232,6 @@ describe('when there is initially one user in db', () => {
     assert.strictEqual(usersAtEnd.length, usersAtStart.length)
   })
 })
-
-
-
 
 after(async () => {
   await mongoose.connection.close()
