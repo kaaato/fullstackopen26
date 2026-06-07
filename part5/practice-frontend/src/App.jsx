@@ -1,57 +1,49 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import noteService from './services/notes'
 import loginService from './services/login'
 import Note from './components/Note'
 import Notification from './components/Notification'
 import Footer from './components/Footer'
+import LoginForm from './components/LoginForm'
+import Togglable from './components/Togglable'
+import NoteForm from './components/NoteForm'
 
 const App = () => {
   const [notes, setNotes] = useState(null)
-  const [newNote, setNewNote] = useState('')
   const [showAll, setShowAll] = useState(true)
   const [errorMessage, setErrorMessage] = useState(null)
-  const [username, setUsername] = useState('') 
-  const [password, setPassword] = useState('')
   const [user, setUser] = useState(null)
-  
+  const noteFormRef = useRef(null)
+
+
   useEffect(() => {
     noteService
-    .getAll()
-    .then(initialNotes => setNotes(initialNotes))
+      .getAll()
+      .then(initialNotes => setNotes(initialNotes))
   }, [])
 
   useEffect(() => {
     const loggedUserJSON = window.localStorage.getItem('loggedNoteappUser')
     if (loggedUserJSON) {
       const user = JSON.parse(loggedUserJSON)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUser(user)
       noteService.setToken(user.token)
     }
   }, [])
-  
-  if(!notes) { 
-  /* this is called at the first render but not after the codes the effect hook are run, which is the second render caused by the setNotes method  */
+
+  if(!notes) {
+  /* this is called at the first render but not after the codes in the first effect hook are run, which is the second render caused by the setNotes method  */
     return null
   }
 
-  const addNote = (event) => {
-    event.preventDefault()
-    const noteObject = {
-      content: newNote,
-      important: Math.random() < 0.5,
-      id: String(notes.length + 1),
-    }
-
+  const addNote = (noteObject) => {
+    noteFormRef.current.changeVisible()
     noteService
       .create(noteObject)
       .then(createdNote => {
         setNotes(notes.concat(createdNote))
-        setNewNote('')
       })
-  }
-
-  const handleNoteChange = (event) => {
-    setNewNote(event.target.value)
   }
 
   const notesToShow = (showAll)
@@ -67,7 +59,7 @@ const App = () => {
         important: !target.important
       })
       .then(updatedNote => {
-        const update = notes.map(note => (id === note.id) 
+        const update = notes.map(note => (id === note.id)
           ? updatedNote
           : note
         )
@@ -75,7 +67,7 @@ const App = () => {
       })
       .catch(error => {
         console.log(error.message)
-        
+
         setErrorMessage(
           `Note '${target.content}' was already removed from server`
         )
@@ -88,33 +80,25 @@ const App = () => {
 
   const deleteNoteOf = (id) => {
     noteService
-    .remove(id)
+      .remove(id)
     // eslint-disable-next-line no-unused-vars
-    .then(removedNote => {
-      setNotes(notes.filter(note => note.id !== id))
-    })
-    .catch(error => console.log(error.message))
+      .then(removedNote => {
+        setNotes(notes.filter(note => note.id !== id))
+      })
+      .catch(error => console.log(error.message))
   }
 
-  const handleLogin = async (event) => {
-    event.preventDefault()
-    console.log('logging in with', username, password)
-
+  const handleLogin = async (loginObj, setUsername, setPassword) => {
     try {
       const user = await loginService
-        .login({
-          username,
-          password
-        })
-
+        .login(loginObj)
       window.localStorage.setItem(
         'loggedNoteappUser', JSON.stringify(user)
-      ) 
+      )
       noteService.setToken(user.token)
       setUser(user)
       setUsername('')
       setPassword('')
-
     } catch {
       setErrorMessage('wrong credentials')
       setTimeout(() => {
@@ -124,36 +108,19 @@ const App = () => {
   }
 
   const loginForm = () => (
-    <form onSubmit={handleLogin}>
-      <div>
-        <label>
-          username
-          <input
-            type="text"
-            value={username}
-            onChange={({ target }) => setUsername(target.value)}
-          />
-        </label>
-      </div>
-      <div>
-        <label>
-          password
-          <input
-            type="password"
-            value={password}
-            onChange={({ target }) => setPassword(target.value)}
-          />
-        </label>
-      </div>
-      <button type="submit">login</button>
-    </form>
+    <Togglable text='login window'>
+      <LoginForm
+        processLogin={handleLogin}
+      />
+    </Togglable>
   )
 
   const noteForm = () => (
-    <form onSubmit={addNote}>
-      <input value={newNote} onChange={handleNoteChange} />
-      <button type="submit">save</button>
-    </form>
+    <Togglable text='save window' ref={noteFormRef}>
+      <NoteForm
+        createNote={addNote}
+      />
+    </Togglable>
   )
 
   return (
@@ -175,19 +142,21 @@ const App = () => {
         </button>
       </div>
       <ul>
-        {notesToShow.map(note => 
+        {notesToShow.map(note =>
           <Note
             key={note.id}
             note={note}
             toggleImportance={() => toggleImportanceOf(note.id)}
             deleteNote={() => deleteNoteOf(note.id)}
-            />
+          />
         )}
       </ul>
 
       < Footer />
     </div>
+
   )
+
 }
 
 export default App

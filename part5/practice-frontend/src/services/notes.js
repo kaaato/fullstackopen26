@@ -39,9 +39,3 @@ const remove = id => {
 }
 
 export default { getAll, create, update, remove, setToken }
-
-/* export default { 
-  getAll: getAll, 
-  create: create, 
-  update: update 
-} */

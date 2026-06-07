@@ -59,15 +59,16 @@ blogsRouter.delete('/:id', async (request, response) => {
 })
 
 blogsRouter.put('/:id', async (request, response) => {
-  const { likes } = request.body
+  // const { likes } = request.body // my original code
+  const { title, author, url, likes } = request.body
   const id = request.params.id
-  const user = request.user
+  // const user = request.user
 
-  const hasUserCreated = user.blogs.includes(id)
+  // const hasUserCreated = user.blogs.includes(id)
 
-  if (!hasUserCreated) {
-    return response.status(401).json({ error: 'user is not allowed to delete this blog' })
-  }
+  // if (!hasUserCreated) {
+  //   return response.status(401).json({ error: 'user is not allowed to modify this blog' })
+  // }
 
   const blog = await Blog.findById(id)
 
@@ -75,6 +76,10 @@ blogsRouter.put('/:id', async (request, response) => {
     response.status(404).end()
   }
 
+  // blog.likes = likes
+  blog.title = title
+  blog.author = author
+  blog.url = url
   blog.likes = likes
 
   const updatedBlog = await blog.save()
