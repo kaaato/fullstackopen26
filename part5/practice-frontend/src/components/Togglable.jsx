@@ -3,8 +3,8 @@ import { useState, useImperativeHandle } from 'react'
 const Togglable = ({ children, text, ref }) => {
   const [visible, setVisible] = useState(false)
 
-  const hideComponent = { display: (visible) ? 'none' : '' }
-  const showComponent = { display: (visible) ? '' : 'none' }
+  const hideWhenVisible = { display: (visible) ? 'none' : '' }
+  const showWhenVisible = { display: (visible) ? '' : 'none' }
   const changeVisible = () => setVisible(!visible)
 
   useImperativeHandle(ref, () => {
@@ -13,10 +13,10 @@ const Togglable = ({ children, text, ref }) => {
 
   return (
     <div>
-      <div style={hideComponent}>
+      <div style={hideWhenVisible}>
         <button onClick={changeVisible}>open {text}</button>
       </div>
-      <div style={showComponent}>
+      <div style={showWhenVisible}>
         {children}
         <button onClick={changeVisible}>close {text}</button>
       </div>
